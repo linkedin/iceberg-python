@@ -74,7 +74,7 @@ jobs:
         if: matrix.os == 'ubuntu-latest'
         run: ls -lah dist/* && cp dist/* wheelhouse/
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: "svn-release-candidate-${{ matrix.os }}"
           path: ./wheelhouse/*
@@ -85,7 +85,7 @@ jobs:
       - svn-build-artifacts
     steps:
       - name: Merge Artifacts
-        uses: actions/upload-artifact/merge@v4
+        uses: actions/upload-artifact/merge@v7
         with:
           name: "svn-release-candidate-${{ inputs.VERSION }}"
           pattern: svn-release-candidate*
