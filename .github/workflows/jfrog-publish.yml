@@ -24,7 +24,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           WITH_V: true
           DEFAULT_BUMP: patch
-          INITIAL_VERSION: 0.11.1
+          INITIAL_VERSION: 0.11.0
 
       - name: Get the latest tag
         id: get-version
