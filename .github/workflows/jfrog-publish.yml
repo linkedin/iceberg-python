@@ -51,9 +51,6 @@ jobs:
           merge-multiple: true
           path: dist/
 
-      - name: List downloaded artifacts
-        run: ls -R dist/
-
       - name: Publish to JFrog Artifactory PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
