@@ -5,12 +5,18 @@ on:
     branches:
       - 'li-0.11'
 
+concurrency:
+  group: jfrog-publish-${{ github.ref }}
+  cancel-in-progress: false
+
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   tag:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     outputs:
       VERSION: ${{ steps.get-version.outputs.VERSION }}
     steps:
