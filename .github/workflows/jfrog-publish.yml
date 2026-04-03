@@ -1,0 +1,63 @@
+name: "Publish to JFrog"
+
+on:
+  push:
+    branches:
+      - 'li-0.11'
+
+permissions:
+  contents: write
+
+jobs:
+  set-version:
+    runs-on: ubuntu-latest
+    outputs:
+      VERSION: ${{ steps.get-version.outputs.VERSION }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Bump version and push tag
+        uses: anothrNick/github-tag-action@1.69.0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          WITH_V: true
+          DEFAULT_BUMP: patch
+          INITIAL_VERSION: 0.11.1
+
+      - name: Get the latest tag
+        id: get-version
+        run: |
+          latest_tag=$(git describe --tags --abbrev=0)
+          VERSION=${latest_tag#v}
+          echo "VERSION=${VERSION}" >> "$GITHUB_OUTPUT"
+          echo "Publishing version ${VERSION}"
+
+  build:
+    needs: set-version
+    uses: ./.github/workflows/pypi-build-artifacts.yml
+    with:
+      VERSION: ${{ needs.set-version.outputs.VERSION }}
+
+  publish:
+    name: Publish to JFrog Artifactory
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download all the artifacts
+        uses: actions/download-artifact@v7
+        with:
+          merge-multiple: true
+          path: dist/
+
+      - name: List downloaded artifacts
+        run: ls -R dist/
+
+      - name: Publish to JFrog Artifactory PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          repository-url: https://linkedin.jfrog.io/artifactory/api/pypi/openhouse-pypi
+          user: ${{ secrets.JFROG_USERNAME }}
+          password: ${{ secrets.JFROG_PYPI_API_TOKEN }}
+          verbose: true
