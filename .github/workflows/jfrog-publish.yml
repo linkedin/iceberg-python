@@ -18,13 +18,20 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Install UV
+        uses: astral-sh/setup-uv@v7
+
+      - name: Get initial version from pyproject.toml
+        id: initial-version
+        run: echo "VERSION=$(uv version --short)" >> "$GITHUB_OUTPUT"
+
       - name: Bump version and push tag
         uses: anothrNick/github-tag-action@1.69.0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           WITH_V: true
           DEFAULT_BUMP: patch
-          INITIAL_VERSION: 0.11.0
+          INITIAL_VERSION: ${{ steps.initial-version.outputs.VERSION }}
 
       - name: Get the latest tag
         id: get-version
