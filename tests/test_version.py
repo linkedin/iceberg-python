@@ -21,7 +21,7 @@ from pyiceberg import __version__
 def test_version_format() -> None:
     from importlib import metadata
 
-    installed_version = metadata.version("pyiceberg-li")
+    installed_version = metadata.version("li-pyiceberg")
 
     assert __version__ == installed_version, (
         f"The installed version ({installed_version}) does not match the current codebase version ({__version__})."
