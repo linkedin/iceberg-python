@@ -9,7 +9,7 @@ permissions:
   contents: write
 
 jobs:
-  set-version:
+  tag:
     runs-on: ubuntu-latest
     outputs:
       VERSION: ${{ steps.get-version.outputs.VERSION }}
@@ -35,10 +35,10 @@ jobs:
           echo "Publishing version ${VERSION}"
 
   build:
-    needs: set-version
+    needs: tag
     uses: ./.github/workflows/pypi-build-artifacts.yml
     with:
-      VERSION: ${{ needs.set-version.outputs.VERSION }}
+      VERSION: ${{ needs.tag.outputs.VERSION }}
 
   publish:
     name: Publish to JFrog Artifactory
