@@ -54,7 +54,6 @@ from pyiceberg.expressions.visitors import (
     manifest_evaluator,
 )
 from pyiceberg.io import FileIO, load_file_io
-from pyiceberg.observability import perf_timer
 from pyiceberg.manifest import (
     DataFile,
     DataFileContent,
@@ -62,6 +61,7 @@ from pyiceberg.manifest import (
     ManifestEntry,
     ManifestFile,
 )
+from pyiceberg.observability import perf_timer
 from pyiceberg.partitioning import (
     PARTITION_FIELD_ID_START,
     UNPARTITIONED_PARTITION_SPEC,
