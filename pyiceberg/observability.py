@@ -66,8 +66,8 @@ class LoggingPerfObserver:
         parts = [f"operation={event.operation}", f"duration_ms={event.duration_ms:.3f}"]
         for key, value in event.tags.items():
             parts.append(f"{key}={value}")
-        for key, value in event.metrics.items():
-            parts.append(f"{key}={value}")
+        for key, metric_value in event.metrics.items():
+            parts.append(f"{key}={metric_value}")
         logger.debug(" ".join(parts))
 
 
@@ -153,7 +153,7 @@ def perf_timer(operation: str, **tags: str) -> Generator[_PerfTimerContext, None
 
 
 def timed(operation: str, **decorator_tags: str) -> Callable[[F], F]:
-    """Decorator that wraps a function body in perf_timer.
+    """Decorate a function to wrap its body in perf_timer.
 
     Built on top of perf_timer internally — same PerfObserver/PerfEvent pipeline,
     same NullPerfObserver fast path, same structured log output.
