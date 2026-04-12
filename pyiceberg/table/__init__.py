@@ -54,6 +54,7 @@ from pyiceberg.expressions.visitors import (
     manifest_evaluator,
 )
 from pyiceberg.io import FileIO, load_file_io
+from pyiceberg.observability import perf_timer
 from pyiceberg.manifest import (
     DataFile,
     DataFileContent,
@@ -1984,11 +1985,17 @@ def _open_manifest(
     Returns:
         A list of ManifestEntry that matches the provided filters.
     """
-    return [
-        manifest_entry
-        for manifest_entry in manifest.fetch_manifest_entry(io, discard_deleted=True)
-        if partition_filter(manifest_entry.data_file) and metrics_evaluator(manifest_entry.data_file)
-    ]
+    with perf_timer("scan.open_manifest", manifest_path=manifest.manifest_path) as t:
+        t.metric("manifest_length", manifest.manifest_length)
+        all_entries = manifest.fetch_manifest_entry(io, discard_deleted=True)
+        t.metric("entry_count", len(all_entries))
+        result = [
+            manifest_entry
+            for manifest_entry in all_entries
+            if partition_filter(manifest_entry.data_file) and metrics_evaluator(manifest_entry.data_file)
+        ]
+        t.metric("matched_count", len(result))
+    return result
 
 
 def _min_sequence_number(manifests: list[ManifestFile]) -> int:
@@ -2144,35 +2151,44 @@ class DataScan(TableScan):
 
     def _plan_files_local(self) -> Iterable[FileScanTask]:
         """Plan files locally by reading manifests."""
-        data_entries: list[ManifestEntry] = []
-        delete_index = DeleteFileIndex()
+        with perf_timer("scan.plan_files_local") as t:
+            data_entries: list[ManifestEntry] = []
+            delete_index = DeleteFileIndex()
+            delete_entry_count = 0
 
-        residual_evaluators: dict[int, Callable[[DataFile], ResidualEvaluator]] = KeyDefaultDict(self._build_residual_evaluator)
-
-        for manifest_entry in chain.from_iterable(self.scan_plan_helper()):
-            data_file = manifest_entry.data_file
-            if data_file.content == DataFileContent.DATA:
-                data_entries.append(manifest_entry)
-            elif data_file.content == DataFileContent.POSITION_DELETES:
-                delete_index.add_delete_file(manifest_entry, partition_key=data_file.partition)
-            elif data_file.content == DataFileContent.EQUALITY_DELETES:
-                raise ValueError("PyIceberg does not yet support equality deletes: https://github.com/apache/iceberg/issues/6568")
-            else:
-                raise ValueError(f"Unknown DataFileContent ({data_file.content}): {manifest_entry}")
-        return [
-            FileScanTask(
-                data_entry.data_file,
-                delete_files=delete_index.for_data_file(
-                    data_entry.sequence_number or INITIAL_SEQUENCE_NUMBER,
-                    data_entry.data_file,
-                    partition_key=data_entry.data_file.partition,
-                ),
-                residual=residual_evaluators[data_entry.data_file.spec_id](data_entry.data_file).residual_for(
-                    data_entry.data_file.partition
-                ),
+            residual_evaluators: dict[int, Callable[[DataFile], ResidualEvaluator]] = KeyDefaultDict(
+                self._build_residual_evaluator
             )
-            for data_entry in data_entries
-        ]
+
+            for manifest_entry in chain.from_iterable(self.scan_plan_helper()):
+                data_file = manifest_entry.data_file
+                if data_file.content == DataFileContent.DATA:
+                    data_entries.append(manifest_entry)
+                elif data_file.content == DataFileContent.POSITION_DELETES:
+                    delete_index.add_delete_file(manifest_entry, partition_key=data_file.partition)
+                    delete_entry_count += 1
+                elif data_file.content == DataFileContent.EQUALITY_DELETES:
+                    raise ValueError(
+                        "PyIceberg does not yet support equality deletes: https://github.com/apache/iceberg/issues/6568"
+                    )
+                else:
+                    raise ValueError(f"Unknown DataFileContent ({data_file.content}): {manifest_entry}")
+            t.metric("data_file_count", len(data_entries))
+            t.metric("delete_entry_count", delete_entry_count)
+            return [
+                FileScanTask(
+                    data_entry.data_file,
+                    delete_files=delete_index.for_data_file(
+                        data_entry.sequence_number or INITIAL_SEQUENCE_NUMBER,
+                        data_entry.data_file,
+                        partition_key=data_entry.data_file.partition,
+                    ),
+                    residual=residual_evaluators[data_entry.data_file.spec_id](data_entry.data_file).residual_for(
+                        data_entry.data_file.partition
+                    ),
+                )
+                for data_entry in data_entries
+            ]
 
     def plan_files(self) -> Iterable[FileScanTask]:
         """Plans the relevant files by filtering on the PartitionSpecs.
@@ -2184,9 +2200,15 @@ class DataScan(TableScan):
         Returns:
             List of FileScanTasks that contain both data and delete files.
         """
-        if self._should_use_server_side_planning():
-            return self._plan_files_server_side()
-        return self._plan_files_local()
+        with perf_timer("scan.plan_files") as t:
+            if self._should_use_server_side_planning():
+                t.tag("planning_mode", "server_side")
+                result = list(self._plan_files_server_side())
+            else:
+                t.tag("planning_mode", "local")
+                result = list(self._plan_files_local())
+            t.metric("task_count", len(result))
+        return result
 
     def to_arrow(self) -> pa.Table:
         """Read an Arrow table eagerly from this DataScan.
