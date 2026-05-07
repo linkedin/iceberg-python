@@ -36,6 +36,7 @@ from pyiceberg.avro.file import AvroFile, AvroOutputFile
 from pyiceberg.conversions import to_bytes
 from pyiceberg.exceptions import ValidationError
 from pyiceberg.io import FileIO, InputFile, OutputFile
+from pyiceberg.observability import perf_timer
 from pyiceberg.partitioning import PartitionSpec
 from pyiceberg.schema import Schema
 from pyiceberg.typedef import Record, TableVersion
@@ -869,18 +870,21 @@ class ManifestFile(Record):
         Returns:
             An Iterator of manifest entries.
         """
-        input_file = io.new_input(self.manifest_path)
-        with AvroFile[ManifestEntry](
-            input_file,
-            MANIFEST_ENTRY_SCHEMAS[DEFAULT_READ_VERSION],
-            read_types={-1: ManifestEntry, 2: DataFile},
-            read_enums={0: ManifestEntryStatus, 101: FileFormat, 134: DataFileContent},
-        ) as reader:
-            return [
-                _inherit_from_manifest(entry, self)
-                for entry in reader
-                if not discard_deleted or entry.status != ManifestEntryStatus.DELETED
-            ]
+        with perf_timer("manifest.fetch_entries", manifest_path=self.manifest_path) as t:
+            input_file = io.new_input(self.manifest_path)
+            with AvroFile[ManifestEntry](
+                input_file,
+                MANIFEST_ENTRY_SCHEMAS[DEFAULT_READ_VERSION],
+                read_types={-1: ManifestEntry, 2: DataFile},
+                read_enums={0: ManifestEntryStatus, 101: FileFormat, 134: DataFileContent},
+            ) as reader:
+                result = [
+                    _inherit_from_manifest(entry, self)
+                    for entry in reader
+                    if not discard_deleted or entry.status != ManifestEntryStatus.DELETED
+                ]
+            t.metric("entry_count", len(result))
+        return result
 
     def __eq__(self, other: Any) -> bool:
         """Return the equality of two instances of the ManifestFile class."""
@@ -924,19 +928,24 @@ def _manifests(io: FileIO, manifest_list: str) -> tuple[ManifestFile, ...]:
     Returns:
         A tuple of ManifestFile objects.
     """
-    file = io.new_input(manifest_list)
-    manifest_files = list(read_manifest_list(file))
+    with perf_timer("manifest.read_list") as t:
+        file = io.new_input(manifest_list)
+        manifest_files = list(read_manifest_list(file))
 
-    result = []
-    with _manifest_cache_lock:
-        for manifest_file in manifest_files:
-            manifest_path = manifest_file.manifest_path
-            if manifest_path in _manifest_cache:
-                result.append(_manifest_cache[manifest_path])
-            else:
-                _manifest_cache[manifest_path] = manifest_file
-                result.append(manifest_file)
+        result = []
+        cache_hits = 0
+        with _manifest_cache_lock:
+            for manifest_file in manifest_files:
+                manifest_path = manifest_file.manifest_path
+                if manifest_path in _manifest_cache:
+                    result.append(_manifest_cache[manifest_path])
+                    cache_hits += 1
+                else:
+                    _manifest_cache[manifest_path] = manifest_file
+                    result.append(manifest_file)
 
+        t.metric("manifest_count", len(result))
+        t.metric("cache_hits", cache_hits)
     return tuple(result)
 
 
