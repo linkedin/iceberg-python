@@ -146,7 +146,7 @@ default-groups = [
 ]
 
 [build-system]
-requires = ["setuptools>=80", "wheel", "Cython>=3.0.0"]
+requires = ["setuptools>=82.0.1", "wheel", "Cython>=3.0.0"]
 build-backend = "setuptools.build_meta"
 
 [tool.pytest.ini_options]
