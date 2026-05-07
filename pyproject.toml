@@ -82,7 +82,7 @@ hive-kerberos = [
 ]
 s3fs = ["s3fs>=2023.1.0"]
 glue = ["boto3>=1.24.59"]
-adlfs = ["adlfs>=2024.7.0"]
+adlfs = ["adlfs>=2026.5.0"]
 dynamodb = ["boto3>=1.24.59"]
 bigquery = ["google-cloud-bigquery>=3.33.0,<4"]
 sql-postgres = [
