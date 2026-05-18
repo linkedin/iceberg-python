@@ -91,7 +91,7 @@ jobs:
       if: ${{ failure() }}
       run: docker compose -f dev/docker-compose-integration.yml logs
     - name: Upload coverage data
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7
       with:
         name: coverage-integration
         path: .coverage*
@@ -118,7 +118,7 @@ jobs:
       if: ${{ failure() }}
       run: docker compose -f dev/docker-compose.yml logs
     - name: Upload coverage data
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7
       with:
         name: coverage-s3
         path: .coverage*
@@ -145,7 +145,7 @@ jobs:
       if: ${{ failure() }}
       run: docker compose -f dev/docker-compose-azurite.yml logs
     - name: Upload coverage data
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7
       with:
         name: coverage-adls
         path: .coverage*
@@ -172,7 +172,7 @@ jobs:
       if: ${{ failure() }}
       run: docker compose -f dev/docker-compose-gcs-server.yml logs
     - name: Upload coverage data
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7
       with:
         name: coverage-gcs
         path: .coverage*

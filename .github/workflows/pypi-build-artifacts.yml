@@ -80,7 +80,7 @@ jobs:
         if: matrix.os == 'ubuntu-latest'
         run: ls -lah dist/* && cp dist/* wheelhouse/
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: "pypi-release-candidate-${{ matrix.os }}"
           path: ./wheelhouse/*
@@ -91,7 +91,7 @@ jobs:
       - pypi-build-artifacts
     steps:
       - name: Merge Artifacts
-        uses: actions/upload-artifact/merge@v4
+        uses: actions/upload-artifact/merge@v7
         with:
           name: "pypi-release-candidate-${{ inputs.VERSION }}"
           pattern: pypi-release-candidate*
