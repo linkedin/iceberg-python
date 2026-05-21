@@ -62,7 +62,7 @@ pandas = [
     "pyarrow>=17.0.0",
 ]
 duckdb = [
-    "duckdb>=0.5.0,<2.0.0",
+    "duckdb>=1.5.3,<2.0.0",
     "pyarrow>=17.0.0",
 ]
 ray = [
