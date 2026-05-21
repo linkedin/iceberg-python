@@ -32,7 +32,7 @@ classifiers = [
 ]
 dependencies = [
     "mmh3>=4.0.0,<6.0.0",
-    "requests>=2.20.0,<3.0.0",
+    "requests>=2.34.2,<3.0.0",
     "click>=7.1.1,<9.0.0",
     "rich>=10.11.0,<15.0.0",
     "strictyaml>=1.7.0,<2.0.0", # CVE-2020-14343 was fixed in 5.4.
