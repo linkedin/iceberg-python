@@ -86,10 +86,10 @@ adlfs = ["adlfs>=2024.7.0"]
 dynamodb = ["boto3>=1.24.59"]
 bigquery = ["google-cloud-bigquery>=3.33.0,<4"]
 sql-postgres = [
-    "sqlalchemy>=2.0.18,<3",
+    "sqlalchemy>=2.0.51,<3",
     "psycopg2-binary>=2.9.6",
 ]
-sql-sqlite = ["sqlalchemy>=2.0.18,<3"]
+sql-sqlite = ["sqlalchemy>=2.0.51,<3"]
 gcsfs = ["gcsfs>=2023.1.0"]
 rest-sigv4 = ["boto3>=1.24.59"]
 hf = ["huggingface-hub>=0.24.0"]
@@ -118,7 +118,7 @@ dev = [
     "mypy-boto3-glue>=1.28.18",
     "mypy-boto3-dynamodb>=1.28.18",
     "pyarrow-stubs>=20.0.0.20251107", # Remove when pyarrow >= 23.0.0 https://github.com/apache/arrow/pull/47609
-    "sqlalchemy>=2.0.18,<3",
+    "sqlalchemy>=2.0.51,<3",
 ]
 # for mkdocs
 docs = [
